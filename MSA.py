@@ -1,91 +1,101 @@
 from flask import Flask, render_template, request, Response, make_response, session, redirect, url_for
 import os
 
-
+import time
 from pathlib import Path
 from typing import List, Any
 from expert import LanguageExpert
 from langchain.text_splitter import TokenTextSplitter
 import webvtt
 
-def chunk_text(text: str, chunk_size: int = 4096, chunk_overlap: int = 0) -> List[str]:
+def chunk_text(text: str, chunk_size: int = 4046, chunk_overlap: int = 0) -> List[str]:
     """Split the text into chunks of a specified size."""
     splitter = TokenTextSplitter(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
+    try:
+        print("Total Length of text is: ", len(splitter.split_text(text)))
+    except:
+        pass
     return splitter.split_text(text)
 
 
 def batch_list(items: List[Any], batch_size: int = 10) -> List[List[Any]]:
     """Split a list into smaller lists of a specified size."""
+    print(len([items[i:i + batch_size] for i in range(0, len(items), batch_size)]))
     return [items[i:i + batch_size] for i in range(0, len(items), batch_size)]
 
 
-# def convert_vtt_to_txt(infile, outfile):
-#     """Convert VTT subtitle file to a plain text file."""
-#     vtt = webvtt.read(infile)
-#     transcript = ""
-#     lines = []
-#     last_speaker = None
-#     for line in vtt:
-#         speaker = line.lines[0].split('>')[0].split('v ')[1]
-#         if last_speaker != speaker:
-#             lines.append('\n'+speaker + ': ')
-#         lines.extend(line.text.strip().splitlines())
-#         last_speaker = speaker
-#     previous = None
-#     for line in lines:
-#         if line == previous:
-#             continue
-#         transcript += f" {line.strip()}"
-#         previous = line
-#     with open(outfile, 'w') as f:
-#         f.write(transcript)
-#     print(f'Length of original:\t{len(vtt.content)} characters\nLength of final:\t{len(transcript)} characters\nPercent Reduction:\t{100 - len(transcript)*100/len(vtt.content):.0f}%')
-
 def convert_vtt_to_txt(infile, outfile):
     """Convert VTT subtitle file to a plain text file."""
-    try:
-        vtt = webvtt.read(infile)
-    except FileNotFoundError:
-        print("Input file not found.")
-        return
-    except webvtt.errors.WebVTTError as e:
-        print("Error reading VTT file:", e)
-        return
-
+    vtt = webvtt.read(infile)
     transcript = ""
     lines = []
     last_speaker = None
     for line in vtt:
-        if line.text:
-            print("Lines are: ",line.text)
-            speaker = line.text.split(': ')[0]
-            if last_speaker != speaker:
-                lines.append('\n'+speaker + ': ')
-            lines.extend(line.text.strip().splitlines())
-            last_speaker = speaker
-
+        print("Lines are:", line.lines)
+        speaker = line.lines[0].split('>')[0].split('v ')[1]
+        if last_speaker != speaker:
+            lines.append('\n'+speaker + ': ')
+        lines.extend(line.text.strip().splitlines())
+        last_speaker = speaker
     previous = None
     for line in lines:
         if line == previous:
             continue
         transcript += f" {line.strip()}"
         previous = line
-
-    try:
-        with open(outfile, 'w') as f:
-            f.write(transcript)
-    except IOError:
-        print("Error writing to the output file.")
-        return
-
+    with open(outfile, 'w') as f:
+        f.write(transcript)
     print(f'Length of original:\t{len(vtt.content)} characters\nLength of final:\t{len(transcript)} characters\nPercent Reduction:\t{100 - len(transcript)*100/len(vtt.content):.0f}%')
+
+# def convert_vtt_to_txt(infile, outfile):
+#     """Convert VTT subtitle file to a plain text file."""
+#     try:
+#         vtt = webvtt.read(infile)
+#     except FileNotFoundError:
+#         print("Input file not found.")
+#         return
+#     except webvtt.errors.WebVTTError as e:
+#         print("Error reading VTT file:", e)
+#         return
+
+#     transcript = ""
+#     lines = []
+#     last_speaker = None
+#     for line in vtt:
+#         if line.text:
+#             print("Lines are: ",line.text)
+#             speaker = line.text.split(': ')[0]
+#             if last_speaker != speaker:
+#                 lines.append('\n'+speaker + ': ')
+#             lines.extend(line.text.strip().splitlines())
+#             last_speaker = speaker
+
+#     previous = None
+#     for line in lines:
+#         if line == previous:
+#             continue
+#         transcript += f" {line.strip()}"
+#         previous = line
+
+#     try:
+#         with open(outfile, 'w') as f:
+#             f.write(transcript)
+#     except IOError:
+#         print("Error writing to the output file.")
+#         return
+
+#     print(f'Length of original:\t{len(vtt.content)} characters\nLength of final:\t{len(transcript)} characters\nPercent Reduction:\t{100 - len(transcript)*100/len(vtt.content):.0f}%')
 
 
 def save(summary: str) -> str:
     summary_id = os.urandom(24).hex()
+    # Create a file with the summary if it doesn't exist
     with open(f'summaries/{summary_id}.txt', 'w') as f:
         f.write(summary)
     return summary_id
+    # with open(f'summaries/{summary_id}.txt', 'rb') as f:
+    #     f.write(summary)
+    # return summary_id
 
 def load(summary_id: str) -> str:
     with open(f'summaries/{summary_id}.txt', 'r') as f:
@@ -124,7 +134,7 @@ def index():
     # (Perform the summarization code, as before...)
     selected_model = request.form['model_name']
     summary = summarize(text_content, selected_model)
-    summary = html_to_text(summary)
+    # summary = html_to_text(summary)
     summary_id  = save(summary)
     session['summary_id'] = summary_id
     # Instead of creating a downloadable file, render the template with the summary
@@ -181,8 +191,9 @@ def display_summary():
 def summarize(text_content, selected_model):
     max_tokens = 75000 if selected_model == 'claude-v1.3-100k' else 2048
     chunks_of_text_content: List[str] = chunk_text(text_content, chunk_size=max_tokens)
+    print("Total Chunks:", chunks_of_text_content)
     chunks_of_text_content: List[str] = [f'<raw_transcript>{chunk}</raw_transcript>' for chunk in chunks_of_text_content]
-    batched_chunks: List[List[str]] = batch_list(chunks_of_text_content)
+    batched_chunks: List[List[str]] = batch_list(chunks_of_text_content, 10)
     from config import preamble
     model_params = {
         "model_name": "gpt-3.5-turbo",
@@ -190,16 +201,22 @@ def summarize(text_content, selected_model):
         "frequency_penalty": 0.0,
         "presence_penalty": 0.0,
         "n": 1,
-        "max_tokens": 2048
+        "max_tokens": 2046
     }
+    model_params = None
     bullet_generator: LanguageExpert = LanguageExpert(preamble=preamble, model_params=model_params)
     bullet_generator.change_param("model_name", selected_model)
     summarized_chunks: List[str] = []
+    print(batched_chunks)
+    print("Total Batched Chunks: ", len(batched_chunks[0]))
     for batch in batched_chunks:
         summarized_batch: List[str] = bullet_generator.bulk_generate(batch)
         summarized_chunks.extend(summarized_batch)
-
+        print("Length of the batch is:", len(batch))
+        
+        print("Summarized Batch is:", summarized_batch)
     return ''.join(summarized_chunks)
+    # return ''.join('hello')
 
 if __name__ == '__main__':
     app.run(debug=True) 
