@@ -195,6 +195,8 @@ def summarize(text_content, selected_model):
     chunks_of_text_content: List[str] = [f'<raw_transcript>{chunk}</raw_transcript>' for chunk in chunks_of_text_content]
     batched_chunks: List[List[str]] = batch_list(chunks_of_text_content, 10)
     from config import preamble
+    preamble["name"] = "Poonam Ponde"
+    preamble["summary"] = preamble["summary"].format(role="Lecturer", name="Poonam Ponde")
     model_params = {
         "model_name": "gpt-3.5-turbo",
         "temperature": 0.00,

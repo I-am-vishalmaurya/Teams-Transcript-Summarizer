@@ -86,6 +86,7 @@ class LanguageExpert:
     @staticmethod
     def gen_prompt(d):
         xml = f"{LanguageExpert.generate_xml('assistant_instruction', d)}"
+        print(LanguageExpert.prettify_xml(xml))
         return LanguageExpert.prettify_xml(xml)
 
     @staticmethod
