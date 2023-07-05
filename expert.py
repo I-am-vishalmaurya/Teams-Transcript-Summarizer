@@ -8,6 +8,8 @@ from pathlib import Path
 import xml.etree.ElementTree as ET
 import html
 
+
+
 # At the moment langchain API wrappers are needed due to the separation of chat models and language models. These wrappers allow us to use the same interface for both.
 # Class to communicate with OpenAI for generating responses. Wrapped around the langchain wrappers
 class OpenAIModel():
