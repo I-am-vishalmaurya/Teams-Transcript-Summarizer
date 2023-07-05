@@ -3,3 +3,5 @@
 /summaries/*
 /uploads/*
 /config.py
+/venv
+config.py

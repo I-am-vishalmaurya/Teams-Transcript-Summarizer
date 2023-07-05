@@ -19,27 +19,67 @@ def batch_list(items: List[Any], batch_size: int = 10) -> List[List[Any]]:
     return [items[i:i + batch_size] for i in range(0, len(items), batch_size)]
 
 
+# def convert_vtt_to_txt(infile, outfile):
+#     """Convert VTT subtitle file to a plain text file."""
+#     vtt = webvtt.read(infile)
+#     transcript = ""
+#     lines = []
+#     last_speaker = None
+#     for line in vtt:
+#         speaker = line.lines[0].split('>')[0].split('v ')[1]
+#         if last_speaker != speaker:
+#             lines.append('\n'+speaker + ': ')
+#         lines.extend(line.text.strip().splitlines())
+#         last_speaker = speaker
+#     previous = None
+#     for line in lines:
+#         if line == previous:
+#             continue
+#         transcript += f" {line.strip()}"
+#         previous = line
+#     with open(outfile, 'w') as f:
+#         f.write(transcript)
+#     print(f'Length of original:\t{len(vtt.content)} characters\nLength of final:\t{len(transcript)} characters\nPercent Reduction:\t{100 - len(transcript)*100/len(vtt.content):.0f}%')
+
 def convert_vtt_to_txt(infile, outfile):
     """Convert VTT subtitle file to a plain text file."""
-    vtt = webvtt.read(infile)
+    try:
+        vtt = webvtt.read(infile)
+    except FileNotFoundError:
+        print("Input file not found.")
+        return
+    except webvtt.errors.WebVTTError as e:
+        print("Error reading VTT file:", e)
+        return
+
     transcript = ""
     lines = []
     last_speaker = None
     for line in vtt:
-        speaker = line.lines[0].split('>')[0].split('v ')[1]
-        if last_speaker != speaker:
-            lines.append('\n'+speaker + ': ')
-        lines.extend(line.text.strip().splitlines())
-        last_speaker = speaker
+        if line.text:
+            print("Lines are: ",line.text)
+            speaker = line.text.split(': ')[0]
+            if last_speaker != speaker:
+                lines.append('\n'+speaker + ': ')
+            lines.extend(line.text.strip().splitlines())
+            last_speaker = speaker
+
     previous = None
     for line in lines:
         if line == previous:
             continue
         transcript += f" {line.strip()}"
         previous = line
-    with open(outfile, 'w') as f:
-        f.write(transcript)
+
+    try:
+        with open(outfile, 'w') as f:
+            f.write(transcript)
+    except IOError:
+        print("Error writing to the output file.")
+        return
+
     print(f'Length of original:\t{len(vtt.content)} characters\nLength of final:\t{len(transcript)} characters\nPercent Reduction:\t{100 - len(transcript)*100/len(vtt.content):.0f}%')
+
 
 def save(summary: str) -> str:
     summary_id = os.urandom(24).hex()
@@ -145,7 +185,7 @@ def summarize(text_content, selected_model):
     batched_chunks: List[List[str]] = batch_list(chunks_of_text_content)
     from config import preamble
     model_params = {
-        "model_name": "claude-v1.3",
+        "model_name": "gpt-3.5-turbo",
         "temperature": 0.00,
         "frequency_penalty": 0.0,
         "presence_penalty": 0.0,

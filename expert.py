@@ -72,7 +72,7 @@ class LanguageExpert:
 
         ##Set default model parameters if none provided##
         if model_params is None:
-            model_params = {"model_name": "claude-v1.3", "temperature":  0.00,  
+            model_params = {"model_name": "gpt-3.5-turbo", "temperature":  0.00,  
                             "frequency_penalty": 1.0, "presence_penalty":  0.5,  
                             "n": 1, "max_tokens":  512}
         self.model_params = model_params
@@ -207,7 +207,7 @@ class LanguageExpert:
         The chat object is either an AnthropicModel or OpenAIModel, depending 
         on the model_name parameter. 
         """
-        if self.model_params["model_name"]in ["gpt-4", "gpt-3.5-turbo"]:
+        if self.model_params["model_name"] in ["gpt-4", "gpt-3.5-turbo"]:
             self.chat = OpenAIModel(openai_api_key=OPENAI_API_KEY, **self.model_params)
         elif self.model_params["model_name"] in ['claude-v1.3', 'claude-v1.3-100k']:
             self.chat = AnthropicModel(anthropic_api_key=ANTHROPIC_API_KEY, **self.model_params)
